@@ -1,0 +1,91 @@
+#!/bin/bash
+
+set -e
+
+function usage() {
+    echo "usage: $0 [options] machine-name"
+    echo "
+Required environment:
+
+export OS_AUTH_URL=
+export OS_TENANT_ID=
+export OS_TENANT_NAME=
+export OS_USERNAME=
+export OS_PASSWORD=
+export OS_REGION_NAME=
+export TUTUM_USER=
+export TUTUM_APIKEY=
+"
+    exit 1
+}
+
+while [[ $# > 0 ]]
+do
+    key="$1"
+
+    # MACHINE_NAME should be the last argument.
+    if [[ -n $MACHINE_NAME ]]; then usage; fi
+
+    case $key in
+        --tag)
+            TUTUM_ARGS="$TUTUM_ARGS --tag $2"
+            shift
+            ;;
+        --openstack-*)
+            OPENSTACK_ARGS="$OPENSTACK_ARGS $key $2"
+            shift
+            ;;
+        --default)
+            DEFAULT=YES
+            ;;
+        -*)
+            # unknown option
+            echo "ERROR: unknown option: '$1'"
+            usage
+            ;;
+        *)
+            MACHINE_NAME=$1
+            ;;
+    esac
+    shift
+done
+
+# MACHINE_NAME should be defined
+if [[ ! -n $MACHINE_NAME ]]; then
+    usage
+fi
+
+if [[ ! -n $TUTUM_APIKEY ]]; then
+    usage
+fi
+
+echo "  Machine: $MACHINE_NAME"
+echo "Openstack: $OPENSTACK_ARGS"
+echo "    Tutum: $TUTUM_ARGS"
+
+# Give some time to the user to think about what he is doing.
+sleep 4
+
+# Create the machine.
+docker-machine create --driver openstack $OPENSTACK_ARGS $MACHINE_NAME
+
+# Provision the machine on tutum
+docker-machine ssh $MACHINE_NAME "$(tutum node byo | grep curl)"
+
+# Retrieve the docker-machine IP address
+IP=$(docker-machine inspect $MACHINE_NAME | grep \"Ip\" | cut -d\" -f4)
+
+# Find the machine on tutum from its IP address
+TUTUM_NODES=$(tutum node list -q)
+for node in $TUTUM_NODES; do
+    if tutum node inspect $node | grep \"$IP\"; then
+
+        # Found the machine
+        echo "Node found on Tutum. Waiting for it to be ready..."
+        while ! tutum node inspect $node | grep \"Deployed\"; do sleep 1; done
+
+        # Tag it!
+        tutum tag add -t $MACHINE_NAME $TAGS $node
+        exit 0
+    fi
+done
