@@ -1,0 +1,24 @@
+{
+  "name": "tutum-openstack",
+  "version": "0.1.0",
+  "description": "Bring your openstack node on Tutum",
+  "main": "tutum-openstack-create",
+  "scripts": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/j3k0/tutum-openstack.git"
+  },
+  "keywords": [
+    "tutum",
+    "openstack",
+    "docker"
+  ],
+  "bin" : "./tutum-openstack-create" ,
+  "author": "Jean-Christophe Hoelt <hoelt@fovea.cc>",
+  "license": "GPLv3",
+  "bugs": {
+    "url": "https://github.com/j3k0/tutum-openstack/issues"
+  },
+  "homepage": "https://github.com/j3k0/tutum-openstack"
+}
