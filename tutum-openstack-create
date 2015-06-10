@@ -19,6 +19,9 @@ export TUTUM_APIKEY=
     exit 1
 }
 
+TUTUM_TAGS=()
+OPENSTACK_ARGS=()
+
 while [[ $# > 0 ]]
 do
     key="$1"
@@ -28,11 +31,15 @@ do
 
     case $key in
         --tag)
-            TUTUM_ARGS="$TUTUM_ARGS --tag $2"
+            TUTUM_TAGS+=("--tag")
+            TUTUM_TAGS+=("$2")
+            TUTUM_SUMMARY="$TUTUM_SUMMARY/$2"
             shift
             ;;
         --openstack-*)
-            OPENSTACK_ARGS="$OPENSTACK_ARGS $key $2"
+            OPENSTACK_ARGS+=("$key")
+            OPENSTACK_ARGS+=("$2")
+            OPENSTACK_SUMMARY="$OPENSTACK_SUMMARY/$2"
             shift
             ;;
         --default)
@@ -59,15 +66,17 @@ if [[ ! -n $TUTUM_APIKEY ]]; then
     usage
 fi
 
+echo
 echo "  Machine: $MACHINE_NAME"
-echo "Openstack: $OPENSTACK_ARGS"
-echo "    Tutum: $TUTUM_ARGS"
+echo "Openstack: $OPENSTACK_SUMMARY"
+echo "    Tutum: $TUTUM_SUMMARY"
+echo
 
 # Give some time to the user to think about what he is doing.
-sleep 4
+#sleep 4
 
 # Create the machine.
-docker-machine create --driver openstack $OPENSTACK_ARGS $MACHINE_NAME
+docker-machine create --driver openstack "${OPENSTACK_ARGS[@]}" $MACHINE_NAME
 
 # Provision the machine on tutum
 docker-machine ssh $MACHINE_NAME "$(tutum node byo | grep curl)"
@@ -85,7 +94,7 @@ for node in $TUTUM_NODES; do
         while ! tutum node inspect $node | grep \"Deployed\"; do sleep 1; done
 
         # Tag it!
-        tutum tag add -t $MACHINE_NAME $TAGS $node
+        tutum tag add -t $MACHINE_NAME "${TUTUM_TAGS[@]}" $node
         exit 0
     fi
 done

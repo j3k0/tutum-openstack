@@ -76,5 +76,5 @@ tutum-openstack-create \
 
 ### Note
 
-The machine name will also be added as a tag to the added node.
+The machine name will also be added as a tag.
 
